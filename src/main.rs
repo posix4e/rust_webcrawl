@@ -1,84 +1,93 @@
-#![feature(plugin)] #![plugin(regex_macros)]
+#![feature(plugin)]
+#![plugin(regex_macros)]
+#![feature(collections)]
 extern crate regex;
 extern crate hyper;
 extern crate env_logger;
 
-
 use std::env;
+use std::thread;
 use std::io::Read;
 
 use hyper::Client;
-use std::collections::BinaryHeap;
+
 use std::collections::HashSet;
 use hyper::client::response::Response;
-use std::task::TaskBuilder;
-
+use std::sync::mpsc::channel;
 
 fn get_urls_from_html(mut response:Response) -> Vec<String> {
-				let mut matched_urls = Vec::new();
-				let link_matching_regex = regex!(r#"<a[^>]* href="([^"]*)"#);
-				let mut body = String::new();
-				response.read_to_string(&mut body).unwrap();
+	let mut matched_urls = Vec::new();
+	let link_matching_regex = regex!(r#"<a[^>]* href="([^"]*)"#);
+	let mut body = String::new();
+	response.read_to_string(&mut body).unwrap();
 
-			for capturerer_of_captured_url in link_matching_regex.captures_iter(&body) {
-				for captured_url in capturerer_of_captured_url.iter() {
-						match captured_url {
-							Some(url) => {
-								matched_urls.push(url.to_string());
-							}
-						  None => {}
-						}
-					}
+	for capturerer_of_captured_url in link_matching_regex.captures_iter(&body) {
+		for captured_url in capturerer_of_captured_url.iter() {
+			match captured_url {
+				Some(url) => {
+					matched_urls.push(url.to_string());
 				}
-				return matched_urls;
-
+			  	None => {}
+			}
+		}
+	}
+	return matched_urls;
 }
 
 fn get_websites_helper(url_to_crawl:String) -> Vec<String> {
-				print!("<");
-				let mut client = Client::new();
-
-				let mut res = match client.get(&*url_to_crawl).send() {
-								Ok(res) => res,
-												Err(err) => panic!("Failed to connect: {:?}", err)
-				};
-				return get_urls_from_html(res);
+	print!("<");
+	let mut client = Client::new();
+	let mut res = match client.get(&*url_to_crawl).send() {
+		Ok(res) => res,
+		Err(err) => panic!("Failed to connect: {:?}", err)
+	};
+	return get_urls_from_html(res);
 }
 
 fn get_websites(url: String) {
-				let config = PoolConfig::new();
-				let mut pool = SchedPool::new(config);
-				let mut found_urls :HashSet<String> = HashSet::new();
-				let mut heap = BinaryHeap::with_capacity(100);
-				println!("Crawling {}", url);
-				heap.push(url);
-				while heap.len() > 0 {
-								match heap.pop() {
-												Some(url) => { 
-																for new_url in get_websites_helper(url){
-																				
-											  								if found_urls.contains(&new_url.clone()) {
-																				} else if new_url.starts_with("http") {
-																					println!(">");
-																					heap.push(new_url.clone());
-																					found_urls.insert(new_url);
-																				} 
-																}
-												}
+	let mut found_urls :HashSet<String> = HashSet::new();
+	println!("Crawling {}", url);
+	let (tx, rx) =  channel();
+	tx.send(url);
 
-												None => {}
-								};
+	let mut number_of_threads = 0;
+	let mut counter = 0;
+	while (true) {
+		match rx.recv()  {
+        	Ok(new_site) => {
+				let new_site_copy = new_site.clone();
+				let tx_copy = tx.clone();
+				counter += 1;
+				print!("{}>",counter);
+				if !found_urls.contains(&new_site){
+					found_urls.insert(new_site);
+					while (number_of_threads > 10000 ){
+						thread::sleep_ms(10);
+					}
+					let child: std::thread::JoinHandle<()> = thread::spawn(move || {
+						number_of_threads += 1;
+						for new_url in get_websites_helper(new_site_copy){
+							if new_url.starts_with("http") {
+								tx_copy.send(new_url);
+							}
+						}
+						number_of_threads -= 1;
+					});
 				}
+			}
+			Err(_) => {	}
+        }
+	}
 }
 
 fn main() {
-				env_logger::init().unwrap();
-				let url = match env::args().nth(1) {
-								Some(url) => url,
-												None => {
-																println!("Usage: client <url>");
-																return;
-												}
-				};
-				get_websites(url);
+	env_logger::init().unwrap();
+	let url = match env::args().nth(1) {
+		Some(url) => url,
+		None => {
+			println!("Usage: client <url>");
+			return;
+		}
+	};
+	get_websites(url);
 }

@@ -5,7 +5,9 @@ authors = ["Alex Newman <posix4e@gmail.com>"]
 
 [dependencies]
 time = "0.1.12"
-hyper = "0.3.11"
 env_logger = "0.3.0"
 regex_macros = "0.1.8"
 regex = "0.1.8"
+
+[dependencies.hyper]
+git = "http://github.com/posix4e/hyper"
