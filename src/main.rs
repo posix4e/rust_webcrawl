@@ -1,5 +1,18 @@
 #![feature(plugin)]
+#![feature(unboxed_closures)]
 #![plugin(regex_macros)]
+
+extern crate event;
+extern crate mio;
+
+#[macro_use] extern crate log;
+
+use event::{run, register, ClosureHandler};
+
+use mio::net::SockAddr;
+use mio::net::tcp::{TcpSocket, TcpAcceptor};
+use mio::{IoWriter, IoAcceptor, PollOpt, Interest, ReadHint};
+
 extern crate regex;
 extern crate hyper;
 extern crate env_logger;
