@@ -13,10 +13,3 @@ regex = "0.1.8"
 git = "https://github.com/rust-lang/threadpool"
 [dependencies.hyper]
 git = "http://github.com/posix4e/hyper"
-
-[dependencies.mio]
-git = "https://github.com/carllerche/mio"
-
-[dependencies.event]
-git = "https://github.com/carllerche/rust-event"
-

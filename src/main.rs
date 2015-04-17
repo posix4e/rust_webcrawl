@@ -1,17 +1,5 @@
 #![feature(plugin)]
-#![feature(unboxed_closures)]
 #![plugin(regex_macros)]
-
-extern crate event;
-extern crate mio;
-
-#[macro_use] extern crate log;
-
-use event::{run, register, ClosureHandler};
-
-use mio::net::SockAddr;
-use mio::net::tcp::{TcpSocket, TcpAcceptor};
-use mio::{IoWriter, IoAcceptor, PollOpt, Interest, ReadHint};
 
 extern crate regex;
 extern crate hyper;
@@ -74,11 +62,13 @@ fn get_websites(url: String) {
 
                 print!("{}>", counter);
                 if !found_urls.contains(&new_site) {
+                    print!("!");
                     found_urls.insert(new_site);
 
                     pool.execute(move || {
                         for new_url in get_websites_helper(new_site_copy) {
-                            if new_url.starts_with("http") {
+                            if counter > 100 && new_url.contains("reddit") {
+                            } else if new_url.starts_with("http") {
                                 tx_copy.send(new_url).unwrap();
                             }
                         }
