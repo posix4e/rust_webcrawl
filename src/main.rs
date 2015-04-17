@@ -1,6 +1,5 @@
 #![feature(plugin)]
 #![plugin(regex_macros)]
-
 extern crate regex;
 extern crate hyper;
 extern crate env_logger;
@@ -45,7 +44,7 @@ fn get_websites_helper(url_to_crawl: String) -> Vec < String > {
 }
 
 fn get_websites(url: String) {
-    let pool = ThreadPool::new(100);
+    let pool = ThreadPool::new(3000);
     let mut found_urls:HashSet < String > = HashSet::new();
     println!("Crawling {}", url);
     let (tx, rx) = channel();
@@ -60,15 +59,13 @@ fn get_websites(url: String) {
                 let tx_copy = tx.clone();
                 counter += 1;
 
-                print!("{}>", counter);
+                print!("{} ", counter);
                 if !found_urls.contains(&new_site) {
-                    print!("!");
                     found_urls.insert(new_site);
 
                     pool.execute(move || {
                         for new_url in get_websites_helper(new_site_copy) {
-                            if counter > 100 && new_url.contains("reddit") {
-                            } else if new_url.starts_with("http") {
+                            if new_url.starts_with("http") {
                                 tx_copy.send(new_url).unwrap();
                             }
                         }
