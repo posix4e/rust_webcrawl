@@ -1,14 +1,13 @@
 #![feature(plugin)]
 #![plugin(regex_macros)]
-#![feature(collections)]
 extern crate regex;
 extern crate hyper;
 extern crate env_logger;
+extern crate threadpool;
 
 use std::env;
-use std::thread;
 use std::io::Read;
-
+use threadpool::ThreadPool;
 use hyper::Client;
 
 use std::collections::HashSet;
@@ -37,7 +36,7 @@ fn get_urls_from_html(mut response:Response) -> Vec<String> {
 fn get_websites_helper(url_to_crawl:String) -> Vec<String> {
 	print!("<");
 	let mut client = Client::new();
-	let mut res = match client.get(&*url_to_crawl).send() {
+	let res = match client.get(&*url_to_crawl).send() {
 		Ok(res) => res,
 		Err(err) => panic!("Failed to connect: {:?}", err)
 	};
@@ -45,38 +44,36 @@ fn get_websites_helper(url_to_crawl:String) -> Vec<String> {
 }
 
 fn get_websites(url: String) {
+	let pool = ThreadPool::new(16);
 	let mut found_urls :HashSet<String> = HashSet::new();
 	println!("Crawling {}", url);
 	let (tx, rx) =  channel();
-	tx.send(url);
+	tx.send(url).unwrap();
 
-	let mut number_of_threads = 0;
 	let mut counter = 0;
-	while (true) {
+
+	while true {
 		match rx.recv()  {
         	Ok(new_site) => {
 				let new_site_copy = new_site.clone();
 				let tx_copy = tx.clone();
 				counter += 1;
+
 				print!("{}>",counter);
-				if !found_urls.contains(&new_site){
+				if !found_urls.contains(&new_site) {
 					found_urls.insert(new_site);
-					while (number_of_threads > 10000 ){
-						thread::sleep_ms(10);
-					}
-					let child: std::thread::JoinHandle<()> = thread::spawn(move || {
-						number_of_threads += 1;
+
+					pool.execute(move || {
 						for new_url in get_websites_helper(new_site_copy){
 							if new_url.starts_with("http") {
-								tx_copy.send(new_url);
+								tx_copy.send(new_url).unwrap();
 							}
 						}
-						number_of_threads -= 1;
 					});
 				}
 			}
 			Err(_) => {	}
-        }
+		}
 	}
 }
 
@@ -89,5 +86,6 @@ fn main() {
 			return;
 		}
 	};
+
 	get_websites(url);
 }
