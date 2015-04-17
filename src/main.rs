@@ -44,7 +44,7 @@ fn get_websites_helper(url_to_crawl: String) -> Vec < String > {
 }
 
 fn get_websites(url: String) {
-    let pool = ThreadPool::new(16);
+    let pool = ThreadPool::new(100);
     let mut found_urls:HashSet < String > = HashSet::new();
     println!("Crawling {}", url);
     let (tx, rx) = channel();
