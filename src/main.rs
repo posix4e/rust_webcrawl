@@ -13,12 +13,12 @@ use hyper::Client;
 use std::collections::HashSet;
 use hyper::client::response::Response;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize,Ordering};
-use std::sync::mpsc::{channel,TryRecvError};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc::{channel, TryRecvError};
 use std::thread;
 use std::io::Write;
 
-fn get_urls_from_html(mut response: Response) -> Vec < String > {
+fn get_urls_from_html(mut response: Response) -> Vec<String> {
     let mut matched_urls = Vec::new();
     let link_matching_regex = regex!(r#"<a[^>]* href="([^"]*)"#);
     let mut body = String::new();
@@ -37,10 +37,10 @@ fn get_urls_from_html(mut response: Response) -> Vec < String > {
     return matched_urls;
 }
 
-fn get_websites_helper(url_to_crawl: String) -> Vec < String > {
+fn get_websites_helper(url_to_crawl: String) -> Vec<String> {
     print!("<");
     let mut client = Client::new();
-    let res = match client.get(& * url_to_crawl).send() {
+    let res = match client.get(&*url_to_crawl).send() {
         Ok(res) => res,
         Err(err) => {
             match writeln!(&mut std::io::stderr(), "Error: {}!", err) {
@@ -56,7 +56,7 @@ fn get_websites_helper(url_to_crawl: String) -> Vec < String > {
 fn get_websites(url: String) {
     let pool = ThreadPool::new(3000);
     let running_threads = Arc::new(AtomicUsize::new(0));
-    let mut found_urls:HashSet < String > = HashSet::new();
+    let mut found_urls: HashSet<String> = HashSet::new();
     println!("Crawling {}", url);
     let (tx, rx) = channel();
     tx.send(url).unwrap();
@@ -89,9 +89,8 @@ fn get_websites(url: String) {
             Err(TryRecvError::Empty) if n_active_threads == 0 => break,
             Err(TryRecvError::Empty) => {
                 writeln!(&mut std::io::stderr(),
-                 "Channel is empty, but there are {} threads running",
-                  n_active_threads);
-        thread::sleep_ms(10);
+                         "Channel is empty, but there are {} threads running", n_active_threads);
+                thread::sleep_ms(10);
             },
             Err(TryRecvError::Disconnected) => unreachable!(),
         }
