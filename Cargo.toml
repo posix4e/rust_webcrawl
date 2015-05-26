@@ -11,5 +11,5 @@ regex = "0.1.8"
 
 [dependencies.threadpool]
 git = "https://github.com/rust-lang/threadpool"
-[dependencies.hyper]
-git = "http://github.com/posix4e/hyper"
+[dependencies.hyperhyper]
+git = "http://github.com/posix4e/micro-hyper"

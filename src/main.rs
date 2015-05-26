@@ -1,28 +1,32 @@
 #![feature(plugin)]
 #![plugin(regex_macros)]
+#![feature(collections)]
+
 extern crate regex;
-extern crate hyper;
+extern crate hyperhyper;
 extern crate env_logger;
 extern crate threadpool;
 
 use std::env;
 use std::io::Read;
 use threadpool::ThreadPool;
-use hyper::Client;
 
 use std::collections::HashSet;
-use hyper::client::response::Response;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, TryRecvError};
 use std::thread;
 use std::io::Write;
+use std::rc::Rc;
 
-fn get_urls_from_html(mut response: Response) -> Vec<String> {
+use hyperhyper::poke_web_page;
+use hyperhyper::HttpAction;
+
+fn get_urls_from_html(response: Vec<u8>) -> Vec<String> {
     let mut matched_urls = Vec::new();
     let link_matching_regex = regex!(r#"<a[^>]* href="([^"]*)"#);
-    let mut body = String::new();
-    response.read_to_string(&mut body).unwrap();
+    let body:String = String::from_utf8(response).unwrap();
+    println!("|{}|",body);
 
     for capturerer_of_captured_url in link_matching_regex.captures_iter(&body) {
         for captured_url in capturerer_of_captured_url.iter() {
@@ -39,18 +43,10 @@ fn get_urls_from_html(mut response: Response) -> Vec<String> {
 
 fn get_websites_helper(url_to_crawl: String) -> Vec<String> {
     print!("<");
-    let mut client = Client::new();
-    let res = match client.get(&*url_to_crawl).send() {
-        Ok(res) => res,
-        Err(err) => {
-            match writeln!(&mut std::io::stderr(), "Error: {}!", err) {
-                Ok(_) => {},
-                Err(x) => panic!("Unable to write to stderr: {}", x),
-            }
-            return Vec::new();
-        }
-    };
-    return get_urls_from_html(res);
+     let result:Vec<u8> = poke_web_page("google.com".to_string(), 
+    	80, 
+    	HttpAction::Get(Rc::new(String::from_str("/"))));
+    return get_urls_from_html(result);
 }
 
 fn get_websites(url: String) {
