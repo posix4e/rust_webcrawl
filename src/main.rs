@@ -73,8 +73,8 @@ fn get_websites(mut event_loop: EventLoop<Echo>, url: String) {
                     let my_running_threads = running_threads.clone();
                     pool.execute(move || {
                         for new_url in get_urls_from_html(rx_new_site.await().unwrap()) {
-                        	println!("new_url {}", new_url);
                             if new_url.starts_with("http") {
+                                println!("new_url {}", new_url);
                                 tx_copy.send(new_url).unwrap();
                             }
                         }
