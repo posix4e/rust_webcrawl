@@ -13,3 +13,8 @@ regex = "0.1.8"
 git = "https://github.com/rust-lang/threadpool"
 [dependencies.hyperhyper]
 git = "http://github.com/posix4e/micro-hyper"
+[dependencies.mio]
+git = "https://github.com/carllerche/mio"
+
+[dependencies.eventual]
+git = "https://github.com/carllerche/eventual"
